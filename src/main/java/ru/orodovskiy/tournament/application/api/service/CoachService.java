@@ -2,6 +2,7 @@ package ru.orodovskiy.tournament.application.api.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.orodovskiy.tournament.application.api.dto.AckDto;
 import ru.orodovskiy.tournament.application.api.dto.CoachDto;
 import ru.orodovskiy.tournament.application.api.exception.BadRequestException;
@@ -26,6 +27,7 @@ public class CoachService {
 
     private final CoachDtoFactory coachDtoFactory;
 
+    @Transactional
     public List<CoachDto> getCoaches(Long footballTeamId) {
 
         FootballTeamEntity footballTeam = footballTeamRepository
@@ -35,6 +37,7 @@ public class CoachService {
         return footballTeam.getCoachesList().stream().map(coachDtoFactory::makeDefault).collect(Collectors.toList());
     }
 
+    @Transactional
     public CoachDto createCoach(Long footballTeamId,
                                 String name,
                                 String surname,
@@ -78,6 +81,7 @@ public class CoachService {
         return coachDtoFactory.makeDefault(coach);
     }
 
+    @Transactional
     public AckDto deleteCoach(Long coachId){
 
         coachRepository.deleteById(coachId);

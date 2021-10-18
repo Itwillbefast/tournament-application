@@ -10,7 +10,6 @@ import ru.orodovskiy.tournament.application.api.service.CoachService;
 import java.util.List;
 
 @RestController
-@Transactional
 @RequiredArgsConstructor
 public class CoachController {
 
