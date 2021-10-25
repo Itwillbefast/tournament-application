@@ -7,7 +7,7 @@ import ru.orodovskiy.tournament.application.api.dto.AckDto;
 import ru.orodovskiy.tournament.application.api.dto.PlayerDto;
 import ru.orodovskiy.tournament.application.api.exception.BadRequestException;
 import ru.orodovskiy.tournament.application.api.exception.NotFoundException;
-import ru.orodovskiy.tournament.application.api.factory.PlayerDtoFactory;
+import ru.orodovskiy.tournament.application.api.mapper.PlayerMapper;
 import ru.orodovskiy.tournament.application.store.entity.FootballTeamEntity;
 import ru.orodovskiy.tournament.application.store.entity.PlayerEntity;
 import ru.orodovskiy.tournament.application.store.repository.FootballTeamRepository;
@@ -25,7 +25,7 @@ public class PlayerService {
 
     private final FootballTeamRepository footballTeamRepository;
 
-    private final PlayerDtoFactory playerDtoFactory;
+    private final PlayerMapper playerMapper;
 
     @Transactional
     public List<PlayerDto> getAllPlayers(Optional<String> prefixNameOfCountry) {
@@ -34,7 +34,7 @@ public class PlayerService {
                 .map(playerRepository::streamAllByCountryStartsWithIgnoreCase)
                 .orElseGet(playerRepository::streamAllBy);
 
-        return playersStream.map(playerDtoFactory::makeDefault).collect(Collectors.toList());
+        return playersStream.map(playerMapper::toDto).collect(Collectors.toList());
     }
 
     @Transactional
@@ -44,16 +44,11 @@ public class PlayerService {
                 .findById(footballTeamId)
                 .orElseThrow(() -> new NotFoundException(String.format("Football team with id \"%d\" not found", footballTeamId)));
 
-        return footballTeam.getPlayers().stream().map(playerDtoFactory::makeDefault).collect(Collectors.toList());
+        return footballTeam.getPlayers().stream().map(playerMapper::toDto).collect(Collectors.toList());
     }
 
     @Transactional
-    public PlayerDto createPlayer(
-            Long footballTeamId,
-            String name,
-            String surname,
-            String country,
-            Integer age) {
+    public PlayerDto createPlayer(Long footballTeamId, PlayerEntity player) {
 
         FootballTeamEntity footballTeam = footballTeamRepository
                 .findById(footballTeamId)
@@ -63,17 +58,10 @@ public class PlayerService {
             throw new BadRequestException("Amount a players in one team can't be more than 23");
         }
 
-        PlayerEntity footballPlayer = playerRepository.saveAndFlush(PlayerEntity
-                .builder()
-                .name(name)
-                .surname(surname)
-                .country(country)
-                .age(age)
-                .footballTeam(footballTeam)
-                .build());
+        player.setFootballTeam(footballTeam);
+        playerRepository.saveAndFlush(player);
 
-
-        return playerDtoFactory.makeDefault(footballPlayer);
+        return playerMapper.toDto(player);
     }
 
     @Transactional

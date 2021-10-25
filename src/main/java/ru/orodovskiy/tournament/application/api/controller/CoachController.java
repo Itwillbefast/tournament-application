@@ -1,11 +1,13 @@
 package ru.orodovskiy.tournament.application.api.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.orodovskiy.tournament.application.api.dto.AckDto;
 import ru.orodovskiy.tournament.application.api.dto.CoachDto;
 import ru.orodovskiy.tournament.application.api.service.CoachService;
+import ru.orodovskiy.tournament.application.store.entity.CoachEntity;
 
 import java.util.List;
 
@@ -21,26 +23,22 @@ public class CoachController {
     private static final String DELETE_COACH = "/coaches/{coach_id}";
 
     @GetMapping(GET_COACHES)
-    public List<CoachDto> getCoaches(
+    public ResponseEntity<List<CoachDto>> getCoaches(
             @PathVariable("football_team_id") Long footballTeamId) {
 
-        return coachService.getCoaches(footballTeamId);
+        return ResponseEntity.ok(coachService.getCoaches(footballTeamId));
     }
 
     @PostMapping(CREATE_COACH)
-    public CoachDto createCoach(
-            @PathVariable(value = "football_team_id") Long footballTeamId,
-            @RequestParam(value = "name") String name,
-            @RequestParam(value = "surname", defaultValue = "") String surname,
-            @RequestParam(value = "age") Integer age,
-            @RequestParam(value = "category") String category) {
+    public ResponseEntity<CoachDto> createCoach(@PathVariable(value = "football_team_id") Long footballTeamId,
+                                @RequestBody CoachEntity coach) {
 
-        return coachService.createCoach(footballTeamId, name, surname, age, category);
+        return new ResponseEntity<>(coachService.createCoach(footballTeamId, coach), HttpStatus.CREATED);
     }
 
     @DeleteMapping(DELETE_COACH)
-    public AckDto deleteCoach(@PathVariable("coach_id") Long coachId){
+    public ResponseEntity<AckDto> deleteCoach(@PathVariable("coach_id") Long coachId){
 
-        return coachService.deleteCoach(coachId);
+        return ResponseEntity.ok(coachService.deleteCoach(coachId));
     }
 }

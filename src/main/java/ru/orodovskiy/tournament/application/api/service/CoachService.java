@@ -7,7 +7,7 @@ import ru.orodovskiy.tournament.application.api.dto.AckDto;
 import ru.orodovskiy.tournament.application.api.dto.CoachDto;
 import ru.orodovskiy.tournament.application.api.exception.BadRequestException;
 import ru.orodovskiy.tournament.application.api.exception.NotFoundException;
-import ru.orodovskiy.tournament.application.api.factory.CoachDtoFactory;
+import ru.orodovskiy.tournament.application.api.mapper.CoachMapper;
 import ru.orodovskiy.tournament.application.store.entity.CoachEntity;
 import ru.orodovskiy.tournament.application.store.entity.FootballTeamEntity;
 import ru.orodovskiy.tournament.application.store.repository.CoachRepository;
@@ -25,7 +25,7 @@ public class CoachService {
 
     private final CoachRepository coachRepository;
 
-    private final CoachDtoFactory coachDtoFactory;
+    private final CoachMapper coachMapper;
 
     @Transactional
     public List<CoachDto> getCoaches(Long footballTeamId) {
@@ -34,15 +34,11 @@ public class CoachService {
                 .findById(footballTeamId)
                 .orElseThrow(()-> new NotFoundException(String.format("Football team with id \"%d\" not found", footballTeamId)));
 
-        return footballTeam.getCoachesList().stream().map(coachDtoFactory::makeDefault).collect(Collectors.toList());
+        return footballTeam.getCoachesList().stream().map(coachMapper::toDto).collect(Collectors.toList());
     }
 
     @Transactional
-    public CoachDto createCoach(Long footballTeamId,
-                                String name,
-                                String surname,
-                                Integer age,
-                                String category) {
+    public CoachDto createCoach(Long footballTeamId, CoachEntity coach) {
 
         FootballTeamEntity footballTeam = footballTeamRepository.findById(footballTeamId)
                 .orElseThrow(() -> new NotFoundException(String.format("Football team with id \"%d\" not found", footballTeamId)));
@@ -52,21 +48,13 @@ public class CoachService {
         }
 
         coachRepository
-                .findByCategoryAndFootballTeamId(category, footballTeamId)
-                .filter(presentCoach -> Objects.equals(presentCoach.getCategory(), category))
+                .findByCategoryAndFootballTeamId(coach.getCategory(), footballTeamId)
+                .filter(presentCoach -> Objects.equals(presentCoach.getCategory(), coach.getCategory()))
                 .ifPresent(presentCoach -> {
                     throw new BadRequestException("You don't have two coaches with the same category");
                 });
 
-        CoachEntity coach = coachRepository.saveAndFlush(CoachEntity
-                .builder()
-                .name(name)
-                .surname(surname)
-                .age(age)
-                .category(category)
-                .footballTeam(footballTeam)
-                .build()
-        );
+        coach.setFootballTeam(footballTeam);
 
         coachRepository.saveAndFlush(coach);
 
@@ -75,10 +63,9 @@ public class CoachService {
         } else {
             coach.setPosition("Coach Assistant");
         }
-
         coachRepository.saveAndFlush(coach);
 
-        return coachDtoFactory.makeDefault(coach);
+        return coachMapper.toDto(coach);
     }
 
     @Transactional

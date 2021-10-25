@@ -29,6 +29,8 @@ public class CoachEntity {
     @NonNull
     private String category;
 
+    @NonNull
     @ManyToOne
-    FootballTeamEntity footballTeam;
+    @JoinColumn(name = "football_team_id")
+    private FootballTeamEntity footballTeam;
 }

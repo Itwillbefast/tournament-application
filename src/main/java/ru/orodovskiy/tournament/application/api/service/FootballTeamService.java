@@ -7,7 +7,7 @@ import ru.orodovskiy.tournament.application.api.dto.AckDto;
 import ru.orodovskiy.tournament.application.api.dto.FootballTeamDto;
 import ru.orodovskiy.tournament.application.api.exception.BadRequestException;
 import ru.orodovskiy.tournament.application.api.exception.NotFoundException;
-import ru.orodovskiy.tournament.application.api.factory.FootballTeamDtoFactory;
+import ru.orodovskiy.tournament.application.api.mapper.FootballTeamMapper;
 import ru.orodovskiy.tournament.application.store.entity.FootballTeamEntity;
 import ru.orodovskiy.tournament.application.store.repository.FootballTeamRepository;
 
@@ -22,7 +22,7 @@ public class FootballTeamService {
 
     private final FootballTeamRepository footballTeamRepository;
 
-    private final FootballTeamDtoFactory footballTeamDtoFactory;
+    private final FootballTeamMapper footballTeamMapper;
 
     @Transactional
     public List<FootballTeamDto> getFootballTeams (Optional<String> prefixName) {
@@ -31,70 +31,57 @@ public class FootballTeamService {
                 .map(footballTeamRepository::streamAllByNameStartsWithIgnoreCase)
                 .orElseGet(footballTeamRepository::streamAllBy);
 
-        return footballTeamStream.map(footballTeamDtoFactory::makeDefault).collect(Collectors.toList());
+        return footballTeamStream.map(footballTeamMapper::toDto).collect(Collectors.toList());
     }
 
     @Transactional
-    public FootballTeamDto createFootballTeam(
-            String footballTeamName,
-            String country,
-            Long budget,
-            Long stadiumCapacity) {
+    public FootballTeamDto createFootballTeam(FootballTeamEntity footballTeam) {
 
-        footballTeamRepository.findByName(footballTeamName)
+        footballTeamRepository.findByName(footballTeam.getName())
                 .ifPresent(footballTeamEntity -> {
-                    throw new BadRequestException(String.format("Football team with name \"%s\" already exists", footballTeamName));
+                    throw new BadRequestException(String.format("Football team with name \"%s\" already exists", footballTeam.getName()));
                 });
 
-        if(budget < 50_000_000) {
+        if(footballTeam.getBudget() < 50_000_000) {
             throw new BadRequestException("Your club's budget is not enough to join the tournament");
         }
-        if (stadiumCapacity < 30000) {
+        if (footballTeam.getStadiumCapacity() < 30000) {
             throw new BadRequestException("Your stadium capacity is not enough to join the tournament");
         }
 
-        FootballTeamEntity footballTeam = footballTeamRepository.saveAndFlush(
-                FootballTeamEntity.builder()
-                        .name(footballTeamName)
-                        .country(country)
-                        .budget(budget)
-                        .stadiumCapacity(stadiumCapacity)
-                        .build());
+        footballTeamRepository.saveAndFlush(footballTeam);
 
-        return footballTeamDtoFactory.makeDefault(footballTeam);
+        return footballTeamMapper.toDto(footballTeam);
     }
 
     @Transactional
     public FootballTeamDto updateFootballTeam(
             Long footballTeamId,
-            String footballTeamName,
-            String country,
-            Long budget,
-            Long stadiumCapacity) {
+            FootballTeamEntity updatedFootballTeam) {
 
-        if (footballTeamName.trim().isEmpty()) {
+        if (updatedFootballTeam.getName().trim().isEmpty()) {
             throw new BadRequestException("Football team name can't be empty.");
         }
 
-        if(budget < 50_000_000) {
+        if(updatedFootballTeam.getBudget() < 50_000_000) {
             throw new BadRequestException("Your club's budget is not enough to join the tournament");
         }
-        if (stadiumCapacity < 30000) {
+        if (updatedFootballTeam.getStadiumCapacity() < 30000) {
             throw new BadRequestException("Your stadium capacity is not enough to join the tournament");
         }
 
         FootballTeamEntity footballTeam = footballTeamRepository
                 .findById(footballTeamId)
-                .orElseThrow(() -> new NotFoundException(String.format("Football team with \"%s\" not found", footballTeamId)));
+                .orElseThrow(() -> new NotFoundException(String.format("Football team with id \"%s\" is not found", footballTeamId)));
 
-        footballTeam.setName(footballTeamName);
-        footballTeam.setCountry(country);
-        footballTeam.setBudget(budget);
-        footballTeam.setStadiumCapacity(stadiumCapacity);
+        footballTeam.setName(updatedFootballTeam.getName());
+        footballTeam.setCountry(updatedFootballTeam.getCountry());
+        footballTeam.setBudget(updatedFootballTeam.getBudget());
+        footballTeam.setStadiumCapacity(updatedFootballTeam.getStadiumCapacity());
 
         footballTeamRepository.saveAndFlush(footballTeam);
 
-        return footballTeamDtoFactory.makeDefault(footballTeam);
+        return footballTeamMapper.toDto(footballTeam);
     }
 
     @Transactional
