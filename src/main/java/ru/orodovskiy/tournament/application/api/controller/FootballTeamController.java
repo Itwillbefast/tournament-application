@@ -1,16 +1,16 @@
 package ru.orodovskiy.tournament.application.api.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.orodovskiy.tournament.application.api.dto.AckDto;
 import ru.orodovskiy.tournament.application.api.dto.FootballTeamDto;
+import ru.orodovskiy.tournament.application.api.mapper.FootballTeamMapper;
 import ru.orodovskiy.tournament.application.api.service.FootballTeamService;
 import ru.orodovskiy.tournament.application.store.entity.FootballTeamEntity;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -18,36 +18,44 @@ public class FootballTeamController {
 
     private final FootballTeamService footballTeamService;
 
+    private final FootballTeamMapper footballTeamMapper;
+
     private static final String GET_FOOTBALL_TEAMS = "/football-teams";
     private static final String CREATE_FOOTBALL_TEAM = "/football-teams";
     private static final String UPDATE_FOOTBALL_TEAM = "/football-teams/{football_team_id}";
     private static final String DELETE_FOOTBALL_TEAM = "/football-teams/{football_team_id}";
 
     @GetMapping(GET_FOOTBALL_TEAMS)
-    public ResponseEntity<List<FootballTeamDto>> getFootballTeams (
+    public List<FootballTeamDto> getFootballTeams (
             @RequestParam("prefix_name") Optional<String> prefixName) {
 
-        return ResponseEntity.ok(footballTeamService.getFootballTeams(prefixName));
+        List<FootballTeamEntity> footballTeams = footballTeamService.getFootballTeamsWithOrWithoutPrefix(prefixName);
+
+        return footballTeams.stream().map(footballTeamMapper::toDto).collect(Collectors.toList());
     }
 
     @PostMapping(CREATE_FOOTBALL_TEAM)
-    public ResponseEntity<FootballTeamDto> createFootballTeam(
+    public FootballTeamDto createFootballTeam(
             @RequestBody FootballTeamEntity footballTeam) {
 
-        return new ResponseEntity<>(footballTeamService.createFootballTeam(footballTeam), HttpStatus.CREATED);
+        return footballTeamMapper.toDto(footballTeamService.createFootballTeam(footballTeam));
     }
 
     @PatchMapping(UPDATE_FOOTBALL_TEAM)
-    public ResponseEntity<FootballTeamDto> updateFootballTeam (@PathVariable(value = "football_team_id") Long footballTeamId,
+    public FootballTeamDto updateFootballTeam (@PathVariable(value = "football_team_id") Long footballTeamId,
                                                @RequestBody FootballTeamEntity footballTeam
     ) {
 
-        return new ResponseEntity<>(footballTeamService.updateFootballTeam(footballTeamId, footballTeam), HttpStatus.CREATED);
+        return footballTeamMapper.toDto(footballTeamService.updateFootballTeam(footballTeamId, footballTeam));
     }
 
     @DeleteMapping(DELETE_FOOTBALL_TEAM)
-    public ResponseEntity<AckDto> deleteFootballTeam(@PathVariable("football_team_id") Long footballTeamId) {
+    public AckDto deleteFootballTeam(@PathVariable("football_team_id") Long footballTeamId) {
 
-        return ResponseEntity.ok(footballTeamService.deleteFootballTeam(footballTeamId));
+        footballTeamService.deleteFootballTeam(footballTeamId);
+
+        return AckDto.builder()
+                .answer(true)
+                .build();
     }
 }

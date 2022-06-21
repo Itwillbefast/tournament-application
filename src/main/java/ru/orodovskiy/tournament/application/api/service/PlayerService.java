@@ -4,10 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.orodovskiy.tournament.application.api.dto.AckDto;
-import ru.orodovskiy.tournament.application.api.dto.PlayerDto;
 import ru.orodovskiy.tournament.application.api.exception.BadRequestException;
 import ru.orodovskiy.tournament.application.api.exception.NotFoundException;
-import ru.orodovskiy.tournament.application.api.mapper.PlayerMapper;
 import ru.orodovskiy.tournament.application.store.entity.FootballTeamEntity;
 import ru.orodovskiy.tournament.application.store.entity.PlayerEntity;
 import ru.orodovskiy.tournament.application.store.repository.FootballTeamRepository;
@@ -25,30 +23,28 @@ public class PlayerService {
 
     private final FootballTeamRepository footballTeamRepository;
 
-    private final PlayerMapper playerMapper;
-
     @Transactional
-    public List<PlayerDto> getAllPlayers(Optional<String> prefixNameOfCountry) {
+    public List<PlayerEntity> getAllPlayers(Optional<String> prefixNameOfCountry) {
 
         Stream<PlayerEntity> playersStream = prefixNameOfCountry
                 .map(playerRepository::streamAllByCountryStartsWithIgnoreCase)
                 .orElseGet(playerRepository::streamAllBy);
 
-        return playersStream.map(playerMapper::toDto).collect(Collectors.toList());
+        return playersStream.collect(Collectors.toList());
     }
 
     @Transactional
-    public List<PlayerDto> getPlayers(Long footballTeamId) {
+    public List<PlayerEntity> getPlayers(Long footballTeamId) {
 
         FootballTeamEntity footballTeam = footballTeamRepository
                 .findById(footballTeamId)
                 .orElseThrow(() -> new NotFoundException(String.format("Football team with id \"%d\" not found", footballTeamId)));
 
-        return footballTeam.getPlayers().stream().map(playerMapper::toDto).collect(Collectors.toList());
+        return footballTeam.getPlayers();
     }
 
     @Transactional
-    public PlayerDto createPlayer(Long footballTeamId, PlayerEntity player) {
+    public PlayerEntity createPlayer(Long footballTeamId, PlayerEntity player) {
 
         FootballTeamEntity footballTeam = footballTeamRepository
                 .findById(footballTeamId)
@@ -61,7 +57,7 @@ public class PlayerService {
         player.setFootballTeam(footballTeam);
         playerRepository.saveAndFlush(player);
 
-        return playerMapper.toDto(player);
+        return player;
     }
 
     @Transactional

@@ -3,11 +3,8 @@ package ru.orodovskiy.tournament.application.api.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.orodovskiy.tournament.application.api.dto.AckDto;
-import ru.orodovskiy.tournament.application.api.dto.FootballTeamDto;
 import ru.orodovskiy.tournament.application.api.exception.BadRequestException;
 import ru.orodovskiy.tournament.application.api.exception.NotFoundException;
-import ru.orodovskiy.tournament.application.api.mapper.FootballTeamMapper;
 import ru.orodovskiy.tournament.application.store.entity.FootballTeamEntity;
 import ru.orodovskiy.tournament.application.store.repository.FootballTeamRepository;
 
@@ -22,20 +19,18 @@ public class FootballTeamService {
 
     private final FootballTeamRepository footballTeamRepository;
 
-    private final FootballTeamMapper footballTeamMapper;
-
     @Transactional
-    public List<FootballTeamDto> getFootballTeams (Optional<String> prefixName) {
+    public List<FootballTeamEntity> getFootballTeamsWithOrWithoutPrefix (Optional<String> prefixName) {
 
         Stream<FootballTeamEntity> footballTeamStream = prefixName
                 .map(footballTeamRepository::streamAllByNameStartsWithIgnoreCase)
                 .orElseGet(footballTeamRepository::streamAllBy);
 
-        return footballTeamStream.map(footballTeamMapper::toDto).collect(Collectors.toList());
+        return footballTeamStream.collect(Collectors.toList());
     }
 
     @Transactional
-    public FootballTeamDto createFootballTeam(FootballTeamEntity footballTeam) {
+    public FootballTeamEntity createFootballTeam(FootballTeamEntity footballTeam) {
 
         footballTeamRepository.findByName(footballTeam.getName())
                 .ifPresent(footballTeamEntity -> {
@@ -51,11 +46,11 @@ public class FootballTeamService {
 
         footballTeamRepository.saveAndFlush(footballTeam);
 
-        return footballTeamMapper.toDto(footballTeam);
+        return footballTeam;
     }
 
     @Transactional
-    public FootballTeamDto updateFootballTeam(
+    public FootballTeamEntity updateFootballTeam(
             Long footballTeamId,
             FootballTeamEntity updatedFootballTeam) {
 
@@ -81,16 +76,12 @@ public class FootballTeamService {
 
         footballTeamRepository.saveAndFlush(footballTeam);
 
-        return footballTeamMapper.toDto(footballTeam);
+        return footballTeam;
     }
 
     @Transactional
-    public AckDto deleteFootballTeam( Long footballTeamId) {
+    public void deleteFootballTeam( Long footballTeamId) {
 
-        footballTeamRepository.deleteById(footballTeamId);
-
-        return AckDto.builder()
-                .answer(true)
-                .build();
+         footballTeamRepository.deleteById(footballTeamId);
     }
 }

@@ -4,10 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.orodovskiy.tournament.application.api.dto.AckDto;
-import ru.orodovskiy.tournament.application.api.dto.CoachDto;
 import ru.orodovskiy.tournament.application.api.exception.BadRequestException;
 import ru.orodovskiy.tournament.application.api.exception.NotFoundException;
-import ru.orodovskiy.tournament.application.api.mapper.CoachMapper;
 import ru.orodovskiy.tournament.application.store.entity.CoachEntity;
 import ru.orodovskiy.tournament.application.store.entity.FootballTeamEntity;
 import ru.orodovskiy.tournament.application.store.repository.CoachRepository;
@@ -15,7 +13,6 @@ import ru.orodovskiy.tournament.application.store.repository.FootballTeamReposit
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,20 +22,18 @@ public class CoachService {
 
     private final CoachRepository coachRepository;
 
-    private final CoachMapper coachMapper;
-
     @Transactional
-    public List<CoachDto> getCoaches(Long footballTeamId) {
+    public List<CoachEntity> getCoaches(Long footballTeamId) {
 
         FootballTeamEntity footballTeam = footballTeamRepository
                 .findById(footballTeamId)
                 .orElseThrow(()-> new NotFoundException(String.format("Football team with id \"%d\" not found", footballTeamId)));
 
-        return footballTeam.getCoachesList().stream().map(coachMapper::toDto).collect(Collectors.toList());
+        return footballTeam.getCoachesList();
     }
 
     @Transactional
-    public CoachDto createCoach(Long footballTeamId, CoachEntity coach) {
+    public CoachEntity createCoach(Long footballTeamId, CoachEntity coach) {
 
         FootballTeamEntity footballTeam = footballTeamRepository.findById(footballTeamId)
                 .orElseThrow(() -> new NotFoundException(String.format("Football team with id \"%d\" not found", footballTeamId)));
@@ -65,7 +60,7 @@ public class CoachService {
         }
         coachRepository.saveAndFlush(coach);
 
-        return coachMapper.toDto(coach);
+        return coach;
     }
 
     @Transactional

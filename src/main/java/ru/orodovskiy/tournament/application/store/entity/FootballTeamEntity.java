@@ -36,4 +36,7 @@ public class FootballTeamEntity {
     @OneToMany
     @JoinColumn(name = "football_team_id")
     List<CoachEntity> coachesList = new ArrayList<>();
+
+
+
 }
